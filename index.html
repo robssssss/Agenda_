@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Agenda Richiami</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: una colonna di lavoro. Riepilogo in alto, elenco a righe separate da filetti, scheda Newsletter a due colonne. */
+:root{
+  --bg:#F3F6F8; --surface:#FFFFFF; --surface2:#EAF0F3; --fg:#13222C; --muted:#586873; --line:#D6DFE5;
+  --accent:#1B5878; --accent-fg:#FFFFFF; --accent-soft:#DCEAF2;
+  --red:#B42626; --red-soft:#FBE4E3; --red-line:#EFB5B2; --red-solid:#C62D2D; --on-red:#FFFFFF;
+  --green:#1A7A45; --green-soft:#DFF3E7; --green-line:#A9D9BC;
+  --font:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F161B; --surface:#172128; --surface2:#1E2B33; --fg:#E6EDF1; --muted:#93A3AE; --line:#2A3A44;
+    --accent:#6FB3D6; --accent-fg:#0B1A22; --accent-soft:#1B3442;
+    --red:#FF8A84; --red-soft:#3A1C1E; --red-line:#6A2F31; --red-solid:#FF8A84; --on-red:#2A0D0D;
+    --green:#62D194; --green-soft:#14301F; --green-line:#24573A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F161B; --surface:#172128; --surface2:#1E2B33; --fg:#E6EDF1; --muted:#93A3AE; --line:#2A3A44;
+  --accent:#6FB3D6; --accent-fg:#0B1A22; --accent-soft:#1B3442;
+  --red:#FF8A84; --red-soft:#3A1C1E; --red-line:#6A2F31; --red-solid:#FF8A84; --on-red:#2A0D0D;
+  --green:#62D194; --green-soft:#14301F; --green-line:#24573A;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg); color:var(--fg); font:15px/1.5 var(--font);
+  padding-block:24px 72px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:1040px;margin:0 auto}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-size:1.8rem;font-weight:800;letter-spacing:-.025em;line-height:1.15}
+h2{font-size:1.05rem;font-weight:800;letter-spacing:-.01em}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+header.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px 24px;margin-bottom:16px}
+.today{font-size:.9rem;color:var(--muted);font-variant-numeric:tabular-nums}
+nav.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:20px}
+nav.tabs a{padding:10px 14px;text-decoration:none;color:var(--muted);font-weight:700;border-bottom:3px solid transparent;margin-bottom:-1px}
+nav.tabs a[aria-current="page"]{color:var(--fg);border-bottom-color:var(--accent)}
+nav.tabs .count{font-variant-numeric:tabular-nums;font-weight:600;margin-left:6px;font-size:.8rem;padding:1px 7px;border-radius:99px;background:var(--surface2)}
+
+/* bottoni */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:700;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.due{background:var(--red-solid);color:var(--on-red);border-color:var(--red-solid)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--fg);background:var(--surface2)}
+.btn.danger{color:var(--red)}
+.btn.sm{min-height:34px;padding:5px 10px;font-size:.88rem}
+.btn:disabled{opacity:.55;cursor:default}
+
+/* riepilogo */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.stat{text-align:left;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.stat .n{font-size:1.7rem;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:.82rem;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:7px}
+.stat .dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.stat.due .n{color:var(--red)} .stat.due .dot{background:var(--red)}
+.stat.ok .n{color:var(--green)} .stat.ok .dot{background:var(--green)}
+.stat[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+
+.notice{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 14px;border-radius:10px;background:var(--accent-soft);margin-bottom:16px;font-size:.92rem}
+.notice .grow{flex:1 1 240px;min-width:0}
+
+/* barra strumenti */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.toolbar .search{flex:1 1 220px;min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.fchip{min-height:34px;padding:4px 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:.88rem;cursor:pointer}
+.fchip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+
+/* campi */
+input[type="text"],input[type="email"],input[type="tel"],input[type="search"],input[type="date"],textarea{
+  width:100%;min-height:40px;padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);
+}
+textarea{resize:vertical;line-height:1.5}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field>label,.field>.lab{font-size:.82rem;font-weight:700;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.formgrid .full{grid-column:1/-1}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.chip span{display:inline-block;padding:8px 14px;border:1px solid var(--line);border-radius:99px;background:var(--surface);font-weight:600;font-size:.92rem}
+.chip input:checked+span{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.chip input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.check{display:flex;align-items:flex-start;gap:9px}
+.check input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--accent)}
+.formactions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px}
+.err{color:var(--red);font-weight:600;font-size:.9rem}
+
+/* elenco contatti */
+.list{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.row{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) auto;gap:10px 20px;align-items:center;padding:14px 16px}
+.row+.row{border-top:1px solid var(--line)}
+.row .name{font-weight:800;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.tag{font-size:.74rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 7px}
+.row .contact{font-size:.9rem;color:var(--muted);overflow-wrap:anywhere;margin-top:2px}
+.row .contact a{color:inherit}
+.row .note{font-size:.85rem;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.pill{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:.85rem;padding:3px 11px;border-radius:99px;border:1px solid}
+.pill i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.pill.due{color:var(--red);background:var(--red-soft);border-color:var(--red-line)}
+.pill.ok{color:var(--green);background:var(--green-soft);border-color:var(--green-line)}
+.state .when{display:block;font-size:.85rem;margin-top:4px;color:var(--muted);font-variant-numeric:tabular-nums}
+.actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.empty{padding:36px 20px;text-align:center;color:var(--muted)}
+.empty strong{display:block;color:var(--fg);margin-bottom:4px}
+
+/* newsletter */
+.nl{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:16px;align-items:start}
+.nlstatus{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:16px}
+.nlstatus .when{font-size:.9rem;color:var(--muted)}
+.rcpt{list-style:none;margin:10px 0 0;padding:0;border:1px solid var(--line);border-radius:10px;max-height:460px;overflow:auto}
+.rcpt li{display:flex;gap:10px;align-items:flex-start;padding:9px 12px}
+.rcpt li+li{border-top:1px solid var(--line)}
+.rcpt input{width:18px;height:18px;margin:3px 0 0;accent-color:var(--accent);flex:none}
+.rcpt label{display:block;min-width:0;cursor:pointer;flex:1}
+.rcpt .em{font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
+.rcpt .noem{font-size:.85rem;color:var(--red);font-weight:600}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.draft{background:var(--surface2);border-radius:10px;padding:14px}
+.draft .st{min-height:1.2em;font-size:.88rem;margin-top:8px}
+.fallback{margin-top:12px}
+
+.toastwrap{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;pointer-events:none;
+  padding:0 max(16px,env(safe-area-inset-left,0px)) calc(env(safe-area-inset-bottom,0px) + 16px) max(16px,env(safe-area-inset-right,0px))}
+.toast{background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;font-size:.92rem;max-width:520px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+
+@media (max-width:760px){
+  .nl{grid-template-columns:minmax(0,1fr)}
+  .row{grid-template-columns:minmax(0,1fr)}
+  .actions{justify-content:flex-start}
+  .formgrid{grid-template-columns:minmax(0,1fr)}
+  h1{font-size:1.5rem}
+  .stat .n{font-size:1.4rem}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Agenda Richiami</h1>
+    <div class="today" id="today"></div>
+  </header>
+  <nav class="tabs" aria-label="Sezioni">
+    <a href="#contatti" id="tab-contatti">Contatti<span class="count" id="count-contatti">0</span></a>
+    <a href="#newsletter" id="tab-newsletter">Newsletter<span class="count" id="count-news">0</span></a>
+  </nav>
+
+  <!-- ===== CONTATTI ===== -->
+  <section id="view-contatti">
+    <div class="notice" id="localnote" hidden>
+      <span class="grow">I contatti sono salvati solo su questo telefono, nel browser. Ogni tanto scarica una copia di sicurezza: se cancelli i dati del browser, senza copia si perdono.</span>
+      <button class="btn sm" id="expBtn" type="button">Scarica copia</button>
+      <button class="btn sm" id="impBtn" type="button">Ripristina da copia</button>
+      <input type="file" id="impFile" accept="application/json,.json" hidden>
+    </div>
+    <div class="notice" id="loadnote" hidden>
+      <span class="grow">L'archivio non risponde ancora. I dati mostrati potrebbero non essere aggiornati.</span>
+    </div>
+    <div class="notice" id="examplenote" hidden>
+      <span class="grow">Stai vedendo contatti di esempio. Cancellali quando vuoi iniziare con i tuoi.</span>
+      <button class="btn sm" id="delExamples" type="button">Elimina esempi</button>
+    </div>
+
+    <div class="stats">
+      <button class="stat due" type="button" id="st-due" aria-pressed="false"><span class="l"><span class="dot"></span>Da richiamare</span><span class="n" id="n-due">0</span></button>
+      <button class="stat ok" type="button" id="st-ok" aria-pressed="false"><span class="l"><span class="dot"></span>In regola</span><span class="n" id="n-ok">0</span></button>
+      <div class="stat" id="st-all" style="cursor:default"><span class="l"><span class="dot"></span>Contatti</span><span class="n" id="n-all">0</span></div>
+    </div>
+
+    <div class="toolbar">
+      <input class="search" type="search" id="q" placeholder="Cerca per nome, telefono o e-mail" aria-label="Cerca contatti">
+      <button class="btn primary" type="button" id="newBtn">+ Nuovo contatto</button>
+    </div>
+    <div class="chips" id="typeChips" style="margin-bottom:14px"></div>
+
+    <form class="panel" id="form" hidden novalidate>
+      <h2 id="formTitle" style="margin-bottom:14px">Nuovo contatto</h2>
+      <div class="formgrid">
+        <div class="field"><label for="f-first">Nome</label><input type="text" id="f-first" autocomplete="off"></div>
+        <div class="field"><label for="f-last">Cognome</label><input type="text" id="f-last" autocomplete="off"></div>
+        <div class="field"><label for="f-phone">Telefono</label><input type="tel" id="f-phone" autocomplete="off"></div>
+        <div class="field"><label for="f-email">E-mail</label><input type="email" id="f-email" autocomplete="off"></div>
+        <div class="field full"><span class="lab" id="f-type-lab">Tipologia</span>
+          <div class="seg" role="radiogroup" aria-labelledby="f-type-lab" id="f-type"></div>
+        </div>
+        <div class="field"><label for="f-lastcall">Ultimo contatto</label><input type="date" id="f-lastcall"></div>
+        <div class="field"><span class="lab">Newsletter</span>
+          <label class="check" style="margin-top:6px"><input type="checkbox" id="f-news"><span>Invia la newsletter mensile a questa persona</span></label>
+        </div>
+        <div class="field full"><label for="f-note">Note (facoltative)</label><textarea id="f-note" rows="2"></textarea></div>
+      </div>
+      <div class="formactions">
+        <button class="btn primary" type="submit" id="saveBtn">Salva contatto</button>
+        <button class="btn ghost" type="button" id="cancelBtn">Annulla</button>
+        <span class="err" id="formErr" role="alert"></span>
+      </div>
+    </form>
+
+    <ul class="list" id="list"></ul>
+  </section>
+
+  <!-- ===== NEWSLETTER ===== -->
+  <section id="view-newsletter" hidden>
+    <div class="nlstatus">
+      <span class="pill" id="nlPill"><i></i><span id="nlPillText"></span></span>
+      <span class="when" id="nlWhen"></span>
+    </div>
+    <div class="nl">
+      <div class="panel" style="margin:0">
+        <h2>Destinatari</h2>
+        <p class="muted small" style="margin-top:4px">Spunta chi deve ricevere la newsletter. Servono un indirizzo e-mail.</p>
+        <div class="chips" id="nlChips" style="margin-top:12px"></div>
+        <div class="btnrow">
+          <button class="btn sm" type="button" id="selAll">Seleziona i mostrati</button>
+          <button class="btn sm ghost" type="button" id="selNone">Deseleziona i mostrati</button>
+        </div>
+        <ul class="rcpt" id="rcpt"></ul>
+        <p class="small muted" style="margin-top:10px" id="rcptCount"></p>
+      </div>
+
+      <div class="stack">
+        <div class="panel" style="margin:0">
+          <h2>Messaggio del mese</h2>
+          <div class="draft" id="draftBox" style="margin-top:12px" hidden>
+            <div class="field"><label for="notes">Appunti sul mercato</label>
+              <textarea id="notes" rows="3" placeholder="Es. prezzi stabili in zona, più richieste di bilocali, tassi dei mutui in calo…"></textarea>
+            </div>
+            <div class="btnrow" style="margin-top:10px">
+              <button class="btn sm primary" type="button" id="draftBtn">Scrivi la bozza con Claude</button>
+              <button class="btn sm ghost" type="button" id="draftStop" hidden>Ferma</button>
+            </div>
+            <div class="st" id="draftStatus" aria-live="polite"></div>
+          </div>
+          <div class="stack" style="margin-top:14px">
+            <div class="field"><label for="subject">Oggetto</label><input type="text" id="subject"></div>
+            <div class="field"><label for="body">Testo</label><textarea id="body" rows="14"></textarea></div>
+          </div>
+          <div class="btnrow">
+            <button class="btn sm" type="button" id="copyTo">Copia destinatari (CCN)</button>
+            <button class="btn sm" type="button" id="copySubj">Copia oggetto</button>
+            <button class="btn sm" type="button" id="copyBody">Copia testo</button>
+            <button class="btn sm" type="button" id="csvBtn">Scarica elenco CSV</button>
+          </div>
+          <div class="fallback field" id="fallback" hidden>
+            <label for="fbText">Seleziona e copia da qui</label>
+            <textarea id="fbText" rows="4" readonly></textarea>
+          </div>
+          <div class="btnrow">
+            <button class="btn primary" type="button" id="markSent">Segna come inviata oggi</button>
+          </div>
+          <p class="small muted" style="margin-top:14px">Questa pagina prepara testo e destinatari ma non spedisce e-mail da sola. Incolla il testo in Gmail o Outlook mettendo i destinatari in CCN. In alternativa scarica l'elenco CSV e importalo in un servizio come Brevo o Mailchimp, che può inviare la newsletter ogni mese in automatico.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="toastwrap"><div class="toast" id="toast" role="status" aria-live="polite" hidden></div></div>
+
+<script>
+(function(){
+'use strict';
+var DUE_DAYS=20;
+var TYPES=['Acquirente','Venditore','Ricerca affitto'];
+var $=function(s,r){return (r||document).querySelector(s)};
+
+function el(tag,props){
+  var e=document.createElement(tag);
+  props=props||{};
+  Object.keys(props).forEach(function(k){
+    var v=props[k];
+    if(k==='class')e.className=v;
+    else if(k==='text')e.textContent=v;
+    else if(k.indexOf('on')===0)e.addEventListener(k.slice(2),v);
+    else if(v!==false&&v!=null)e.setAttribute(k,v===true?'':v);
+  });
+  for(var i=2;i<arguments.length;i++){
+    var kids=[].concat(arguments[i]);
+    kids.forEach(function(kid){
+      if(kid==null||kid===false)return;
+      e.append(kid.nodeType?kid:document.createTextNode(kid));
+    });
+  }
+  return e;
+}
+
+/* ---------- date ---------- */
+function pad(n){return String(n).padStart(2,'0')}
+function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function parse(s){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||'');return m?new Date(+m[1],+m[2]-1,+m[3]):null}
+function todayISO(){return iso(new Date())}
+function daysSince(s){var d=parse(s);if(!d)return 0;return Math.round((parse(todayISO())-d)/864e5)}
+function fmtShort(s){var d=parse(s);if(!d)return '';var o={day:'numeric',month:'short'};if(d.getFullYear()!==new Date().getFullYear())o.year='numeric';return d.toLocaleDateString('it-IT',o)}
+function fmtLong(s){var d=parse(s);return d?d.toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'}):''}
+function monthName(d){return d.toLocaleDateString('it-IT',{month:'long'})}
+function giorni(n){return n===1?'1 giorno':n+' giorni'}
+
+/* ---------- stato dei richiami ---------- */
+function statusOf(c){
+  var e=daysSince(c.lastCall||c.created);
+  return {elapsed:e,due:e>=DUE_DAYS,left:DUE_DAYS-e,over:e-DUE_DAYS};
+}
+
+/* ---------- stato dell'app ---------- */
+var contacts=[], settings={}, loaded=false, gotFresh=false;
+var ui={q:'',type:'',status:'',editing:null,deleting:null,nlType:''};
+var busy=false;
+var DEFAULT_BODY='Ciao,\n\ncome ogni mese ti scrivo per fare il punto sul mercato immobiliare della nostra zona.\n\n[Prezzi: cosa sta succedendo]\n\n[Tempi di vendita e richieste di acquirenti e inquilini]\n\n[Un consiglio utile per chi compra, vende o affitta]\n\nSe vuoi sapere quanto vale oggi la tua casa o hai una domanda, rispondi a questa e-mail: ti richiamo volentieri.\n\nA presto,\n[Il tuo nome]';
+function defaultSubject(){var n=new Date();return 'Mercato immobiliare: aggiornamento di '+monthName(n)+' '+n.getFullYear()}
+
+/* ---------- archivio: db condiviso, con ripiego locale ---------- */
+var store={db:null,local:null};
+var LS_KEY='agenda-richiami-v1';
+function newId(){return 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function lsLoad(){try{var r=localStorage.getItem(LS_KEY);return r?JSON.parse(r):null}catch(e){return null}}
+function lsSave(){try{localStorage.setItem(LS_KEY,JSON.stringify(store.local))}catch(e){}}
+function applyLocal(){
+  contacts=Object.keys(store.local.contacts).map(function(id){return Object.assign({id:id},store.local.contacts[id])});
+  settings=store.local.settings||{};
+  loaded=true;gotFresh=true;renderAll();
+}
+function cref(id){return store.db.collection('contacts').doc(id)}
+async function saveContact(id,data){
+  if(store.db){await cref(id).set(data)}
+  else{store.local.contacts[id]=data;lsSave();applyLocal()}
+}
+async function patchContact(id,patch){
+  if(store.db){await cref(id).update(patch)}
+  else{store.local.contacts[id]=Object.assign({},store.local.contacts[id],patch);lsSave();applyLocal()}
+}
+async function deleteContact(id){
+  if(store.db){await cref(id).delete()}
+  else{delete store.local.contacts[id];lsSave();applyLocal()}
+}
+var settingsChain=Promise.resolve();
+function persistSettings(){
+  var snap=Object.assign({},settings);
+  settingsChain=settingsChain.then(function(){
+    if(store.db)return store.db.doc('meta/newsletter').set(snap);
+    store.local.settings=snap;lsSave();
+  }).catch(function(){toast('Non sono riuscito a salvare. Riprova.')});
+  return settingsChain;
+}
+async function initStore(){
+  var db=null;
+  try{db=await (window.claude&&window.claude.use?window.claude.use('db'):null)}catch(e){db=null}
+  var timer=setTimeout(function(){if(!gotFresh){$('#loadnote').hidden=false;loaded=true;renderAll()}},10000);
+  if(db){
+    store.db=db;
+    db.collection('contacts').onSnapshot(function(snap){
+      contacts=snap.docs.map(function(d){return Object.assign({id:d.id},d.data())});
+      loaded=true;
+      if(!snap.metadata.fromCache){gotFresh=true;clearTimeout(timer);$('#loadnote').hidden=true}
+      renderAll();
+    },function(){clearTimeout(timer);loaded=true;$('#loadnote').hidden=false;renderAll()});
+    db.doc('meta/newsletter').onSnapshot(function(snap){
+      settings=snap.data()||{};
+      renderNews();syncComposer();
+    },function(){});
+  }else{
+    clearTimeout(timer);
+    store.local=lsLoad()||{contacts:{},settings:{}};
+    $('#localnote').hidden=false;
+    try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+    applyLocal();syncComposer();
+  }
+}
+
+/* ---------- avvisi ---------- */
+var toastTimer=null;
+function toast(msg){
+  var t=$('#toast');t.textContent=msg;t.hidden=false;
+  clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.hidden=true},3800);
+}
+async function guarded(fn,failMsg){
+  if(busy)return;busy=true;
+  try{await fn()}catch(e){toast(failMsg||'Operazione non riuscita. Riprova.')}
+  finally{busy=false}
+}
+
+/* ---------- elenco contatti ---------- */
+function fullName(c){return ((c.first||'')+' '+(c.last||'')).trim()||'Senza nome'}
+function matchesQuery(c,q){
+  if(!q)return true;
+  var hay=(fullName(c)+' '+(c.phone||'')+' '+(c.email||'')).toLowerCase();
+  return q.toLowerCase().split(/\s+/).every(function(w){return hay.indexOf(w)>-1});
+}
+function sortContacts(list){
+  return list.slice().sort(function(a,b){
+    var sa=statusOf(a),sb=statusOf(b);
+    if(sa.due!==sb.due)return sa.due?-1:1;
+    if(sa.elapsed!==sb.elapsed)return sb.elapsed-sa.elapsed;
+    return fullName(a).localeCompare(fullName(b),'it');
+  });
+}
+function safeTel(p){return /^[+\d\s().-]{5,}$/.test(p||'')}
+function safeMail(m){return /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(m||'')}
+
+function renderStats(){
+  var due=0,ok=0;
+  contacts.forEach(function(c){statusOf(c).due?due++:ok++});
+  $('#n-due').textContent=due;$('#n-ok').textContent=ok;$('#n-all').textContent=contacts.length;
+  $('#count-contatti').textContent=contacts.length;
+  $('#st-due').setAttribute('aria-pressed',String(ui.status==='due'));
+  $('#st-ok').setAttribute('aria-pressed',String(ui.status==='ok'));
+  var ex=contacts.some(function(c){return c.example});
+  $('#examplenote').hidden=!ex;
+}
+function renderChips(host,current,onPick){
+  host.replaceChildren();
+  [''].concat(TYPES).forEach(function(t){
+    host.append(el('button',{class:'fchip',type:'button','aria-pressed':String(current===t),text:t||'Tutti',onclick:function(){onPick(t)}}));
+  });
+}
+function renderList(){
+  var ul=$('#list');ul.replaceChildren();
+  if(!loaded){ul.append(el('li',{class:'empty',text:'Carico i contatti…'}));return}
+  var rows=sortContacts(contacts.filter(function(c){
+    if(ui.type&&c.type!==ui.type)return false;
+    var s=statusOf(c);
+    if(ui.status==='due'&&!s.due)return false;
+    if(ui.status==='ok'&&s.due)return false;
+    return matchesQuery(c,ui.q);
+  }));
+  if(!contacts.length){
+    ul.append(el('li',{class:'empty'},el('strong',{text:'Nessun contatto per ora'}),'Premi “Nuovo contatto” per inserire il primo.'));
+    return;
+  }
+  if(!rows.length){
+    ul.append(el('li',{class:'empty'},el('strong',{text:'Nessun risultato'}),'Cambia la ricerca o i filtri.'));
+    return;
+  }
+  rows.forEach(function(c){ul.append(rowFor(c))});
+}
+/* link per aggiungere il richiamo a Google Calendar (alle 9:00 del giorno di scadenza, o di domani se è già scaduto) */
+function calUrl(c){
+  var base=parse(c.lastCall||c.created)||new Date();
+  var due=new Date(base.getFullYear(),base.getMonth(),base.getDate()+DUE_DAYS);
+  var today=parse(todayISO());
+  if(due<=today)due=new Date(today.getFullYear(),today.getMonth(),today.getDate()+1);
+  var d=due.getFullYear()+pad(due.getMonth()+1)+pad(due.getDate());
+  var details=['Tipologia: '+(c.type||''),c.phone?'Telefono: '+c.phone:'',c.email?'E-mail: '+c.email:'',c.note||''].filter(Boolean).join('\n');
+  var p=new URLSearchParams({action:'TEMPLATE',text:'Richiamare '+fullName(c),dates:d+'T090000/'+d+'T093000',ctz:'Europe/Rome',details:details});
+  return 'https://calendar.google.com/calendar/render?'+p.toString();
+}
+function rowFor(c){
+  var s=statusOf(c);
+  var contactBits=[];
+  if(c.phone)contactBits.push(safeTel(c.phone)?el('a',{href:'tel:'+c.phone.replace(/[^\d+]/g,''),text:c.phone}):c.phone);
+  if(c.email)contactBits.push(safeMail(c.email)?el('a',{href:'mailto:'+c.email,text:c.email}):c.email);
+  var contactLine=[];
+  contactBits.forEach(function(b,i){if(i)contactLine.push(' · ');contactLine.push(b)});
+
+  var when=s.due
+    ?(s.over===0?'scade oggi':'in ritardo di '+giorni(s.over))
+    :'richiamo tra '+giorni(s.left);
+  when+=' · ultimo contatto '+fmtShort(c.lastCall||c.created);
+
+  var actions;
+  if(ui.deleting===c.id){
+    actions=[
+      el('button',{class:'btn sm danger',type:'button',text:'Conferma eliminazione',onclick:function(){guarded(async function(){await deleteContact(c.id);ui.deleting=null;toast('Contatto eliminato')},'Non sono riuscito a eliminare.')}}),
+      el('button',{class:'btn sm ghost',type:'button',text:'Annulla',onclick:function(){ui.deleting=null;renderList()}})
+    ];
+  }else{
+    actions=[
+      el('button',{class:'btn sm '+(s.due?'due':''),type:'button',text:'Richiamato',onclick:function(){
+        guarded(async function(){await patchContact(c.id,{lastCall:todayISO()});toast(fullName(c)+': segnato come richiamato, torna verde per '+DUE_DAYS+' giorni')},'Non sono riuscito a salvare.')
+      }}),
+      el('a',{class:'btn sm ghost',href:calUrl(c),target:'_blank',rel:'noopener',title:'Aggiungi il prossimo richiamo a Google Calendar, con notifica sul telefono',text:'Calendario',style:'text-decoration:none'}),
+      el('button',{class:'btn sm ghost',type:'button',text:'Modifica',onclick:function(){openForm(c)}}),
+      el('button',{class:'btn sm ghost',type:'button',text:'Elimina',onclick:function(){ui.deleting=c.id;renderList()}})
+    ];
+  }
+  return el('li',{class:'row'},
+    el('div',{},
+      el('div',{class:'name'},fullName(c),el('span',{class:'tag',text:c.type||''}),c.example?el('span',{class:'tag',text:'esempio'}):null),
+      contactLine.length?el('div',{class:'contact'},contactLine):null,
+      c.note?el('div',{class:'note',text:c.note}):null
+    ),
+    el('div',{class:'state'},
+      el('span',{class:'pill '+(s.due?'due':'ok')},el('i'),s.due?'Da richiamare':'In regola'),
+      el('span',{class:'when',text:when})
+    ),
+    el('div',{class:'actions'},actions)
+  );
+}
+
+/* ---------- modulo ---------- */
+function buildTypeRadios(){
+  var host=$('#f-type');host.replaceChildren();
+  TYPES.forEach(function(t,i){
+    host.append(el('label',{class:'chip'},el('input',{type:'radio',name:'type',value:t,id:'ft-'+i}),el('span',{text:t})));
+  });
+}
+function openForm(c){
+  ui.editing=c?c.id:null;
+  $('#formTitle').textContent=c?'Modifica contatto':'Nuovo contatto';
+  $('#saveBtn').textContent=c?'Salva modifiche':'Salva contatto';
+  $('#f-first').value=c?c.first||'':'';
+  $('#f-last').value=c?c.last||'':'';
+  $('#f-phone').value=c?c.phone||'':'';
+  $('#f-email').value=c?c.email||'':'';
+  $('#f-lastcall').value=c?(c.lastCall||c.created||todayISO()):todayISO();
+  $('#f-lastcall').max=todayISO();
+  $('#f-news').checked=c?!!c.newsletter:false;
+  $('#f-note').value=c?c.note||'':'';
+  document.querySelectorAll('#f-type input').forEach(function(r){r.checked=c?r.value===c.type:false});
+  $('#formErr').textContent='';
+  $('#form').hidden=false;
+  $('#form').scrollIntoView({block:'nearest',behavior:'smooth'});
+  $('#f-first').focus({preventScroll:true});
+}
+function closeForm(){$('#form').hidden=true;ui.editing=null}
+
+async function submitForm(e){
+  e.preventDefault();
+  var first=$('#f-first').value.trim(),last=$('#f-last').value.trim();
+  var phone=$('#f-phone').value.trim(),email=$('#f-email').value.trim();
+  var tr=document.querySelector('#f-type input:checked');
+  var err='';
+  if(!first||!last)err='Inserisci nome e cognome.';
+  else if(!tr)err='Scegli la tipologia: acquirente, venditore o ricerca affitto.';
+  else if(!phone&&!email)err='Inserisci almeno un telefono o un’e-mail.';
+  else if(email&&!safeMail(email))err='L’indirizzo e-mail non sembra corretto.';
+  var lc=$('#f-lastcall').value||todayISO();
+  if(!err&&lc>todayISO())err='La data dell’ultimo contatto non può essere futura.';
+  $('#formErr').textContent=err;
+  if(err)return;
+  var data={first:first,last:last,phone:phone,email:email,type:tr.value,lastCall:lc,newsletter:$('#f-news').checked,note:$('#f-note').value.trim()};
+  var editing=ui.editing;
+  var btn=$('#saveBtn'),label=btn.textContent;
+  btn.disabled=true;btn.textContent='Salvo…';
+  try{
+    var work=(async function(){
+      if(editing){
+        var old=contacts.find(function(x){return x.id===editing})||{};
+        data.created=old.created||lc;
+        if(old.example)data.example=true;
+        await saveContact(editing,data);
+      }else{
+        data.created=todayISO();
+        await saveContact(newId(),data);
+      }
+    })();
+    var timeout=new Promise(function(_,rej){setTimeout(function(){rej({code:'timeout'})},12000)});
+    await Promise.race([work,timeout]);
+    toast(editing?'Modifiche salvate':'Contatto aggiunto');
+    closeForm();
+  }catch(ex){
+    var code=ex&&ex.code?String(ex.code):'';
+    $('#formErr').textContent=code==='timeout'
+      ?'Il salvataggio non è stato confermato. Controlla la connessione e riprova.'
+      :'Non sono riuscito a salvare'+(code?' (errore: '+code+')':(ex&&ex.message?' ('+ex.message+')':''))+'. Riprova.';
+  }finally{
+    btn.disabled=false;btn.textContent=label;
+  }
+}
+
+/* ---------- newsletter ---------- */
+function recipients(){return contacts.filter(function(c){return c.newsletter&&c.email&&safeMail(c.email)})}
+function renderNews(){
+  var now=new Date(),ls=parse(settings.lastSent);
+  var sent=ls&&ls.getMonth()===now.getMonth()&&ls.getFullYear()===now.getFullYear();
+  var pill=$('#nlPill');
+  pill.className='pill '+(sent?'ok':'due');
+  $('#nlPillText').textContent=sent?'Newsletter di '+monthName(now)+' inviata':'Newsletter di '+monthName(now)+' da inviare';
+  $('#nlWhen').textContent=ls?'Ultimo invio: '+fmtLong(settings.lastSent):'Non è ancora stata inviata nessuna newsletter.';
+  $('#count-news').textContent=recipients().length;
+
+  renderChips($('#nlChips'),ui.nlType,function(t){ui.nlType=t;renderNews()});
+  var ul=$('#rcpt');ul.replaceChildren();
+  var shown=sortContacts(contacts).filter(function(c){return !ui.nlType||c.type===ui.nlType})
+    .sort(function(a,b){return fullName(a).localeCompare(fullName(b),'it')});
+  if(!shown.length){
+    ul.append(el('li',{class:'empty',text:loaded?'Nessun contatto in questa categoria.':'Carico i contatti…'}));
+  }
+  shown.forEach(function(c){
+    var id='rc-'+c.id;
+    var hasMail=c.email&&safeMail(c.email);
+    var cb=el('input',{type:'checkbox',id:id,onchange:function(ev){
+      var v=ev.target.checked;
+      guarded(async function(){await patchContact(c.id,{newsletter:v})},'Non sono riuscito a salvare.');
+    }});
+    cb.checked=!!c.newsletter;
+    ul.append(el('li',{},cb,el('label',{for:id},
+      el('strong',{text:fullName(c)}),' ',el('span',{class:'tag',text:c.type||''}),
+      el('div',{class:hasMail?'em':'noem',text:hasMail?c.email:'senza e-mail: non può ricevere la newsletter'})
+    )));
+  });
+  var n=recipients().length;
+  $('#rcptCount').textContent=n===0?'Nessun destinatario selezionato.':(n===1?'1 destinatario selezionato.':n+' destinatari selezionati.');
+}
+async function bulkSelect(value){
+  var targets=contacts.filter(function(c){
+    return (!ui.nlType||c.type===ui.nlType)&&(!value||(c.email&&safeMail(c.email)))&&!!c.newsletter!==value;
+  });
+  if(!targets.length)return;
+  await guarded(async function(){
+    for(var i=0;i<targets.length;i++){await patchContact(targets[i].id,{newsletter:value})}
+  },'Non sono riuscito a salvare tutte le modifiche.');
+}
+
+var composerTimer=null;
+function syncComposer(){
+  var s=$('#subject'),b=$('#body');
+  if(document.activeElement!==s)s.value=settings.subject!=null?settings.subject:defaultSubject();
+  if(document.activeElement!==b)b.value=settings.body!=null?settings.body:DEFAULT_BODY;
+}
+function composerChanged(){
+  clearTimeout(composerTimer);
+  composerTimer=setTimeout(function(){
+    settings=Object.assign({},settings,{subject:$('#subject').value,body:$('#body').value});
+    persistSettings();
+  },700);
+}
+
+/* copia negli appunti, con ripiego */
+async function copyText(text,label){
+  if(!text){toast('Non c’è nulla da copiare');return}
+  try{
+    await navigator.clipboard.writeText(text);
+    $('#fallback').hidden=true;
+    toast(label+' copiato');
+  }catch(e){
+    var fb=$('#fbText');fb.value=text;$('#fallback').hidden=false;fb.focus();fb.select();
+    toast('Copia manuale: il testo è selezionato qui sotto');
+  }
+}
+function csvCell(v){
+  var s=String(v==null?'':v);
+  if(/^[=@]/.test(s)||(/^[+\-]/.test(s)&&!/^[+\-]?[\d\s().-]+$/.test(s)))s="'"+s;
+  return '"'+s.replace(/"/g,'""')+'"';
+}
+async function downloadCsv(){
+  var list=recipients();
+  if(!list.length){toast('Seleziona prima almeno un destinatario con e-mail');return}
+  var rows=[['Nome','Cognome','E-mail','Telefono','Tipologia']].concat(list.map(function(c){return [c.first,c.last,c.email,c.phone,c.type]}));
+  var csv='﻿'+rows.map(function(r){return r.map(csvCell).join(',')}).join('\r\n');
+  var dl=null;
+  try{dl=await (window.claude&&window.claude.use?window.claude.use('downloads'):null)}catch(e){dl=null}
+  if(!dl){blobDownload('destinatari-newsletter.csv',csv,'text/csv;charset=utf-8');toast('Elenco scaricato');return}
+  try{await dl.save({filename:'destinatari-newsletter.csv',data:csv});toast('Elenco salvato')}
+  catch(e){if(e&&e.code!=='declined')toast('Download non riuscito. Prova a copiare i destinatari.')}
+}
+
+/* bozza con Claude */
+var sampleFn=null,draftCtl=null;
+async function initSample(){
+  try{sampleFn=await (window.claude&&window.claude.use?window.claude.use('sample'):null)}catch(e){sampleFn=null}
+  $('#draftBox').hidden=!sampleFn;
+}
+async function makeDraft(){
+  var notes=$('#notes').value.trim();
+  var st=$('#draftStatus');
+  if(!notes){st.textContent='Scrivi due o tre appunti sul mercato, poi riprova.';return}
+  if(!sampleFn)return;
+  draftCtl=new AbortController();
+  $('#draftBtn').disabled=true;$('#draftStop').hidden=false;st.textContent='Sto scrivendo la bozza…';
+  var prompt='Sei l\'assistente di un agente immobiliare italiano. Scrivi la newsletter mensile per i suoi ex clienti, per mantenere il rapporto. '
+    +'Tono caldo, semplice e professionale, dai del tu. Massimo 170 parole. Usa solo gli appunti qui sotto, senza inventare numeri, percentuali o fatti.\n\n'
+    +'APPUNTI SUL MERCATO:\n'+notes+'\n\n'
+    +'Chiudi invitando a rispondere all\'e-mail per sapere quanto vale oggi la propria casa, e firma con "[Il tuo nome]". '
+    +'Rispondi solo con JSON valido: {"subject":"...","body":"..."}. Il body è testo semplice con righe vuote tra i paragrafi.';
+  try{
+    var out=await sampleFn.json(prompt,{signal:draftCtl.signal,cache:false});
+    if(!out||typeof out.body!=='string')throw {code:'bad'};
+    $('#subject').value=String(out.subject||defaultSubject());
+    $('#body').value=out.body;
+    composerChanged();
+    st.textContent='Bozza pronta. Rileggila e modificala prima di inviarla.';
+  }catch(e){
+    var code=e&&e.code;
+    st.textContent=code==='cancelled'?'Bozza interrotta.'
+      :code==='not_granted'?'Per usare Claude serve il tuo consenso. Riprova e accetta.'
+      :code==='rate_limited'?'Troppe richieste ravvicinate. Aspetta un momento e riprova.'
+      :'Non sono riuscito a scrivere la bozza. Puoi comunque scrivere il testo qui sotto.';
+  }finally{
+    $('#draftBtn').disabled=false;$('#draftStop').hidden=true;draftCtl=null;
+  }
+}
+
+/* ---------- navigazione ---------- */
+function route(){
+  var h=(location.hash||'').replace('#','');
+  var tab=h==='newsletter'?'newsletter':'contatti';
+  $('#view-contatti').hidden=tab!=='contatti';
+  $('#view-newsletter').hidden=tab!=='newsletter';
+  $('#tab-contatti').setAttribute('aria-current',tab==='contatti'?'page':'false');
+  $('#tab-newsletter').setAttribute('aria-current',tab==='newsletter'?'page':'false');
+}
+
+function pickType(t){ui.type=t;renderChips($('#typeChips'),ui.type,pickType);renderList()}
+function renderAll(){renderStats();renderChips($('#typeChips'),ui.type,pickType);renderList();renderNews()}
+
+/* ---------- copia di sicurezza (solo salvataggio locale) ---------- */
+function blobDownload(name,text,type){
+  var url=URL.createObjectURL(new Blob([text],{type:type}));
+  var a=document.createElement('a');a.href=url;a.download=name;
+  document.body.append(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(url)},2000);
+}
+function exportBackup(){
+  if(!store.local)return;
+  var data={app:'agenda-richiami',version:1,contacts:store.local.contacts,settings:store.local.settings||{}};
+  blobDownload('agenda-richiami-copia-'+todayISO()+'.json',JSON.stringify(data,null,2),'application/json');
+  toast('Copia scaricata');
+}
+function cut(v,n){return String(v==null?'':v).trim().slice(0,n)}
+async function importBackup(file){
+  if(!store.local||!file)return;
+  try{
+    var j=JSON.parse(await file.text());
+    var src=j&&j.contacts&&typeof j.contacts==='object'?j.contacts:null;
+    if(!src)throw new Error('formato');
+    var n=0;
+    Object.keys(src).forEach(function(id){
+      var c=src[id];
+      if(!c||typeof c!=='object')return;
+      var first=cut(c.first,80),last=cut(c.last,80);
+      if(!first&&!last)return;
+      if(!/^[A-Za-z0-9_-]{1,60}$/.test(id))id=newId();
+      store.local.contacts[id]={
+        first:first,last:last,phone:cut(c.phone,40),email:cut(c.email,120),
+        type:TYPES.indexOf(c.type)>-1?c.type:TYPES[0],
+        lastCall:parse(c.lastCall)?c.lastCall:todayISO(),
+        created:parse(c.created)?c.created:todayISO(),
+        newsletter:!!c.newsletter,note:cut(c.note,500)
+      };
+      n++;
+    });
+    if(j.settings&&typeof j.settings==='object'){
+      var st={};
+      ['subject','body'].forEach(function(k){if(typeof j.settings[k]==='string')st[k]=j.settings[k].slice(0,5000)});
+      if(parse(j.settings.lastSent))st.lastSent=j.settings.lastSent;
+      store.local.settings=Object.assign({},store.local.settings,st);
+    }
+    lsSave();applyLocal();syncComposer();
+    toast(n+(n===1?' contatto ripristinato':' contatti ripristinati'));
+  }catch(e){toast('Il file non sembra una copia valida.')}
+}
+
+/* ---------- avvio ---------- */
+$('#today').textContent=new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+buildTypeRadios();
+$('#newBtn').addEventListener('click',function(){openForm(null)});
+$('#cancelBtn').addEventListener('click',closeForm);
+$('#form').addEventListener('submit',submitForm);
+$('#q').addEventListener('input',function(ev){ui.q=ev.target.value.trim();renderList()});
+$('#st-due').addEventListener('click',function(){ui.status=ui.status==='due'?'':'due';renderStats();renderList()});
+$('#st-ok').addEventListener('click',function(){ui.status=ui.status==='ok'?'':'ok';renderStats();renderList()});
+$('#delExamples').addEventListener('click',function(){
+  guarded(async function(){
+    var ex=contacts.filter(function(c){return c.example});
+    for(var i=0;i<ex.length;i++){await deleteContact(ex[i].id)}
+    toast('Esempi eliminati');
+  },'Non sono riuscito a eliminare gli esempi.');
+});
+$('#selAll').addEventListener('click',function(){bulkSelect(true)});
+$('#selNone').addEventListener('click',function(){bulkSelect(false)});
+$('#subject').addEventListener('input',composerChanged);
+$('#body').addEventListener('input',composerChanged);
+$('#copyTo').addEventListener('click',function(){copyText(recipients().map(function(c){return c.email}).join('; '),'Elenco destinatari')});
+$('#copySubj').addEventListener('click',function(){copyText($('#subject').value,'Oggetto')});
+$('#copyBody').addEventListener('click',function(){copyText($('#body').value,'Testo')});
+$('#csvBtn').addEventListener('click',downloadCsv);
+$('#markSent').addEventListener('click',function(){
+  settings=Object.assign({},settings,{lastSent:todayISO(),subject:$('#subject').value,body:$('#body').value});
+  persistSettings().then(function(){renderNews();toast('Newsletter segnata come inviata oggi')});
+});
+$('#draftBtn').addEventListener('click',makeDraft);
+$('#draftStop').addEventListener('click',function(){if(draftCtl)draftCtl.abort()});
+$('#expBtn').addEventListener('click',exportBackup);
+$('#impBtn').addEventListener('click',function(){$('#impFile').click()});
+$('#impFile').addEventListener('change',function(ev){var f=ev.target.files[0];ev.target.value='';importBackup(f)});
+window.addEventListener('hashchange',route);
+
+route();
+renderAll();
+syncComposer();
+initStore();
+initSample();
+})();
+</script>
+</body>
+</html>
